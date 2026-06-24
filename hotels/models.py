@@ -4,6 +4,9 @@ class Hotel(models.Model):
     name = models.CharField(max_length=200)
     city = models.CharField(max_length=100)
 
+    def __str__(self):
+        return self.name
+
 
 class Room(models.Model):
     ROOM_TYPE_CHOICES = [
@@ -18,12 +21,19 @@ class Room(models.Model):
     number = models.CharField(max_length=10)
     room_type = models.CharField(max_length=30, choices=ROOM_TYPE_CHOICES, default='standard')
     price_per_night = models.DecimalField(max_digits=8, decimal_places=2)
+
+    
+    def __str__(self):
+        return f'{self.hotel} - Room {self.number}'
     
 
 class Guest(models.Model):
     full_name = models.CharField(max_length=30)
     email = models.EmailField()
     phone = models.CharField(max_length=20)
+
+    def __str__(self):
+        return f'{self.full_name} - Phone {self.phone}'
 
 
 class Booking(models.Model):
@@ -40,4 +50,6 @@ class Booking(models.Model):
     check_out = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
+    def __str__(self):
+        return f'{self.guest} - {self.room} - {self.check_in} - {self.check_out} - {self.status}'
 
