@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Hotel, Room, Guest, Booking
+from django.utils import timezone
 
 class HotelSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,5 +29,23 @@ class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = ['id', 'room', 'guest', 'room_id', 'guest_id', 'check_in', 'check_out', 'status']
+
+
+    def validate(self, data):
+        if data['check_out'] <= data['check_in']:
+            raise serializers.ValidationError('Check-out date must be later than check-in date.')
+
+        conflicting_bookings = Booking.objects.filter(
+            room=data['room'],
+            check_in__lt=data['check_out'],
+            check_out__gt=data['check_in'],
+        ).exclude(status='cancelled')
+
+        if conflicting_bookings.exists():
+            raise serializers.ValidationError('This room is already booked for the selected dates.')
+
+        return data
+
+
 
 
