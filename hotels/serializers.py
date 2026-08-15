@@ -25,10 +25,21 @@ class BookingSerializer(serializers.ModelSerializer):
     guest = GuestSerializer(read_only=True)
     room_id = serializers.PrimaryKeyRelatedField(queryset=Room.objects.all(), source='room', write_only=True)
     guest_id = serializers.PrimaryKeyRelatedField(queryset=Guest.objects.all(), source='guest', write_only=True)
+    nights = serializers.SerializerMethodField()
+    total_price = serializers.SerializerMethodField()
     
     class Meta:
         model = Booking
-        fields = ['id', 'room', 'guest', 'room_id', 'guest_id', 'check_in', 'check_out', 'status']
+        fields = ['id', 'room', 'guest', 'room_id', 'guest_id', 'check_in', 'check_out', 'nights', 'total_price', 'status']
+
+
+
+    def get_nights(self, obj):
+        return (obj.check_out - obj.check_in).days
+
+    def get_total_price(self, obj):
+        return str(obj.room.price_per_night * self.get_nights(obj))
+
 
 
     def validate(self, data):
