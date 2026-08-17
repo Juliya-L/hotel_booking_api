@@ -1,6 +1,9 @@
 from rest_framework import viewsets
 from .models import Hotel, Room, Guest, Booking
 from .serializers import HotelSerializer, RoomSerializer, GuestSerializer, BookingSerializer
+from django.db import transaction
+from rest_framework.response import Response
+from rest_framework import status
 
 
 class HotelViewSet(viewsets.ModelViewSet):
@@ -39,3 +42,27 @@ class GuestViewSet(viewsets.ModelViewSet):
 class BookingViewSet(viewsets.ModelViewSet):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        with transaction.atomic():
+            room = serializer.validated_data['room']
+            Room.objects.select_for_update().get(pk=room.pk)
+
+            conflicting = Booking.objects.filter(
+                room=room,
+                check_in__lt=serializer.validated_data['check_out'],
+                check_out__gt=serializer.validated_data['check_in'],
+            ).exclude(status='cancelled')
+
+            if conflicting.exists():
+                return Response(
+                    {'non_field_errors': ['This room is already booked for the selected dates.']},
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            serializer.save()
+
+        return Response(serializer.data, status=satatus.HTTP_201_CREATED)
