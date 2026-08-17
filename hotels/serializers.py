@@ -27,7 +27,15 @@ class BookingSerializer(serializers.ModelSerializer):
     guest_id = serializers.PrimaryKeyRelatedField(queryset=Guest.objects.all(), source='guest', write_only=True)
     nights = serializers.SerializerMethodField()
     total_price = serializers.SerializerMethodField()
-    
+
+    ALLOWED_TRANSITIONS = {
+        'pending': ['confirmed', 'cancelled'],
+        'confirmed': ['completed', 'cancelled'],
+        'completed': [],
+        'cancelled': [],
+    }
+
+   
     class Meta:
         model = Booking
         fields = ['id', 'room', 'guest', 'room_id', 'guest_id', 'check_in', 'check_out', 'nights', 'total_price', 'status']
@@ -37,10 +45,27 @@ class BookingSerializer(serializers.ModelSerializer):
     def get_nights(self, obj):
         return (obj.check_out - obj.check_in).days
 
+
     def get_total_price(self, obj):
         return str(obj.room.price_per_night * self.get_nights(obj))
 
 
+
+    def validate_status(self, value):
+        if self.instance is None:
+            return value
+
+        current = self.instance.status
+        if value == current:
+            return value
+
+        if value not in self.ALLOWED_TRANSITIONS[current]:
+            raise serializers.ValidationError(
+                f"Cannot change status from '{current}' to '{value}'."
+            )
+        return value
+
+    
 
     def validate(self, data):
         if data['check_out'] <= data['check_in']:
