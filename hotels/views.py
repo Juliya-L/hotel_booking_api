@@ -1,9 +1,11 @@
 from rest_framework import viewsets
 from .models import Hotel, Room, Guest, Booking
-from .serializers import HotelSerializer, RoomSerializer, GuestSerializer, BookingSerializer
+from .serializers import HotelSerializer, RoomSerializer, GuestSerializer, BookingSerializer, RegisterSerializer
 from django.db import transaction
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import AllowAny
+from rest_framework.generics import CreateAPIView
 
 
 class HotelViewSet(viewsets.ModelViewSet):
@@ -66,3 +68,7 @@ class BookingViewSet(viewsets.ModelViewSet):
             serializer.save()
 
         return Response(serializer.data, status=satatus.HTTP_201_CREATED)
+
+class RegisterView(CreateAPIView):
+    serializer_class = RegisterSerializer
+    permission_classes = [AllowAny]

@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import Hotel, Room, Guest, Booking
 from django.utils import timezone
+from django.contrib.auth.models import User
+from django.db import transaction
 
 class HotelSerializer(serializers.ModelSerializer):
     class Meta:
@@ -84,4 +86,38 @@ class BookingSerializer(serializers.ModelSerializer):
 
 
 
+class RegisterSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    password = serializers.CharField(write_only=True, min_length=8)
+    email = serializers.EmailField()
+    full_name = serializers.CharField(max_length=30)
+    phone = serializers.CharField(max_length=20)
 
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError('This username is already taken.')
+        return value
+
+    def create(self, validated_data):
+        with transaction.atomic():
+            user = User.objects.create_user(
+                username=validated_data['username'],
+                password=validated_data['password'],
+                email=validated_data['email'],
+            )
+            guest = Guest.objects.create(
+                user=user,
+                full_name=validated_data['full_name'],
+                email=validated_data['email'],
+                phone=validated_data['phone'],
+            )
+        return guest
+
+    def to_representation(self, instance):
+        return {
+            'id': instance.id,
+            'username': instance.user.username,
+            'email': instance.user.email,
+            'full_name': instance.full_name,
+            'phone': instance.phone,
+        }

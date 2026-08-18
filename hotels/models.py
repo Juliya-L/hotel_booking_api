@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class Hotel(models.Model):
     name = models.CharField(max_length=200)
@@ -28,6 +29,7 @@ class Room(models.Model):
     
 
 class Guest(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='guest_profile', null=True, blank=True)
     full_name = models.CharField(max_length=30)
     email = models.EmailField()
     phone = models.CharField(max_length=20)
