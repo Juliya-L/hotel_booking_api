@@ -62,6 +62,14 @@ class BookingViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        try:
+            guest = request.user.guest_profile
+        except Guest.DoesNotExist:
+            return Response(
+                {'detail': 'Your account has no guest profile.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         with transaction.atomic():
             room = serializer.validated_data['room']
             Room.objects.select_for_update().get(pk=room.pk)
@@ -78,9 +86,9 @@ class BookingViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_409_CONFLICT,
                 )
 
-            serializer.save()
+            serializer.save(guest=guest)
 
-        return Response(serializer.data, status=satatus.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class RegisterView(CreateAPIView):
     serializer_class = RegisterSerializer
