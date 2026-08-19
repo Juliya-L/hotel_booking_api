@@ -4,18 +4,22 @@ from .serializers import HotelSerializer, RoomSerializer, GuestSerializer, Booki
 from django.db import transaction
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.generics import CreateAPIView
+from .permissions import IsStaffOrReadOnly, IsOwnerOrStaff
+
 
 
 class HotelViewSet(viewsets.ModelViewSet):
     queryset = Hotel.objects.all()
     serializer_class = HotelSerializer
+    permission_classes = [IsStaffOrReadOnly]
 
 
 class RoomViewSet(viewsets.ModelViewSet):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
+    permission_classes = [IsStaffOrReadOnly]
 
 
     def get_queryset(self):
@@ -44,6 +48,15 @@ class GuestViewSet(viewsets.ModelViewSet):
 class BookingViewSet(viewsets.ModelViewSet):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrStaff]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Booking.objects.all()
+        return Booking.objects.filter(guest__user=user)
+    
+
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
