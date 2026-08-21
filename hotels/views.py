@@ -4,7 +4,7 @@ from .serializers import HotelSerializer, RoomSerializer, GuestSerializer, Booki
 from django.db import transaction
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.generics import CreateAPIView
 from .permissions import IsStaffOrReadOnly, IsOwnerOrStaff
 
@@ -43,6 +43,7 @@ class RoomViewSet(viewsets.ModelViewSet):
 class GuestViewSet(viewsets.ModelViewSet):
     queryset = Guest.objects.all()
     serializer_class = GuestSerializer
+    permission_classes = [IsAdminUser]
 
 
 class BookingViewSet(viewsets.ModelViewSet):
@@ -88,7 +89,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 
             serializer.save(guest=guest)
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class RegisterView(CreateAPIView):
     serializer_class = RegisterSerializer
