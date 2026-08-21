@@ -52,6 +52,14 @@ class Booking(models.Model):
     check_out = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(check_out__gt=models.F('check_in')),
+                name='check_out_after_check_in',
+            )
+        ]
+
     def __str__(self):
         return f'{self.guest} - {self.room} - {self.check_in} - {self.check_out} - {self.status}'
 
