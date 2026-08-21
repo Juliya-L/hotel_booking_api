@@ -39,7 +39,8 @@ class BookingSerializer(serializers.ModelSerializer):
    
     class Meta:
         model = Booking
-        fields = ['id', 'room', 'guest', 'room_id', 'check_in', 'check_out', 'nights', 'total_price', 'status']
+        fields = ['id', 'room', 'guest', 'room_id', 'check_in', 'check_out', 'nights', 'price_at_booking', 'total_price', 'status']
+        read_only_fields = ['price_at_booking']
 
 
 
@@ -87,6 +88,11 @@ class BookingSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('This room is already booked for the selected dates.')
 
         return data
+
+
+    def get_total_price(self, obj):
+        price = obj.price_at_booking or obj.room.price_per_night
+        return str(price * self.get_nights(obj))
 
 
 

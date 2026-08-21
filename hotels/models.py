@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 class Hotel(models.Model):
     name = models.CharField(max_length=200)
@@ -51,6 +53,7 @@ class Booking(models.Model):
     check_in = models.DateField()
     check_out = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    price_at_booking = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
 
     class Meta:
         constraints = [
@@ -59,6 +62,27 @@ class Booking(models.Model):
                 name='check_out_after_check_in',
             )
         ]
+
+    def clean(self):
+        if self.check_in and self.check_out:
+            if self.check_out <= self.check_in:
+                raise ValidationError('Check-out date must be later than check-in date.')
+
+            if self.status != 'cancelled':
+                conflicting = Booking.objects.filter(
+                    room=self.room,
+                    check_in__lt=self.check_out,
+                    check_out__gt=self.check_in,
+                ).exclude(status='cancelled').exclude(pk=self.pk)
+
+                if conflicting.exists():
+                    raise ValidationError('This room is already booked for the selected dates.')
+
+    def save(self, *args, **kwargs):
+        if self.price_at_booking is None and self.room_id:
+            self.price_at_booking = self.room.price_per_night
+        super().save(*args, **kwargs)
+        
 
     def __str__(self):
         return f'{self.guest} - {self.room} - {self.check_in} - {self.check_out} - {self.status}'
