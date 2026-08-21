@@ -69,6 +69,11 @@ class BookingSerializer(serializers.ModelSerializer):
     
 
     def validate(self, data):
+        today = timezone.now().date()
+
+        if data['check_in'] < today:
+            raise serializers.ValidationError('Check-in date cannot be in the past.')
+        
         if data['check_out'] <= data['check_in']:
             raise serializers.ValidationError('Check-out date must be later than check-in date.')
 
