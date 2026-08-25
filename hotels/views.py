@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.generics import CreateAPIView
-from .permissions import IsStaffOrReadOnly, IsOwnerOrStaff
+from .permissions import IsStaffOrReadOnly, IsOwnerOrStaff, IsHotelOwnerOrReadOnly
 
 
 
@@ -19,16 +19,33 @@ class HotelViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'city']
 
 
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated or user.is_superuser:
+            return Hotel.objects.all()
+        if user.is_staff:
+            return Hotel.objects.filter(owner=user)
+        return Hotel.objects.all()
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+
 class RoomViewSet(viewsets.ModelViewSet):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
-    permission_classes = [IsStaffOrReadOnly]
+    permission_classes = [IsHotelOwnerOrReadOnly]
     filterset_fields = ['hotel', 'room_type']
     ordering_fields = ['price_per_night', 'number']
 
 
     def get_queryset(self):
-        queryset = Room.objects.all()
+        user = self.request.user
+
+        if user.is_authenticated and user.is_staff and not user.is_superuser:
+            queryset = Room.objects.filter(hotel__owner=user)
+        else:
+            queryset = Room.objects.all()
 
         check_in = self.request.query_params.get('check_in')
         check_out = self.request.query_params.get('check_out')
@@ -60,10 +77,11 @@ class BookingViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_staff:
+        if user.is_superuser:
             return Booking.objects.all()
-        return Booking.objects.filter(guest__user=user)
-    
+        if user.is_staff:
+            return Booking.objects.filter(room__hotel__owner=user)
+        return Booking.objects.filter(guest__user=user)   
 
 
     def create(self, request, *args, **kwargs):
