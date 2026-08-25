@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 class Hotel(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.PROTECT, related_name='hotels', null=True, blank=True)
     name = models.CharField(max_length=200)
     city = models.CharField(max_length=100)
 
