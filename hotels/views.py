@@ -14,12 +14,17 @@ class HotelViewSet(viewsets.ModelViewSet):
     queryset = Hotel.objects.all()
     serializer_class = HotelSerializer
     permission_classes = [IsStaffOrReadOnly]
+    filterset_fields = ['city']
+    search_fields = ['name', 'city']
+    ordering_fields = ['name', 'city']
 
 
 class RoomViewSet(viewsets.ModelViewSet):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
     permission_classes = [IsStaffOrReadOnly]
+    filterset_fields = ['hotel', 'room_type']
+    ordering_fields = ['price_per_night', 'number']
 
 
     def get_queryset(self):
@@ -50,6 +55,8 @@ class BookingViewSet(viewsets.ModelViewSet):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrStaff]
+    filterset_fields = ['status', 'room']
+    ordering_fields = ['check_in', 'check_out']
 
     def get_queryset(self):
         user = self.request.user
