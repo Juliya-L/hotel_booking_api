@@ -1,11 +1,11 @@
 from rest_framework import viewsets
 from .models import Hotel, Room, Guest, Booking
-from .serializers import HotelSerializer, RoomSerializer, GuestSerializer, BookingSerializer, RegisterSerializer
+from .serializers import HotelSerializer, RoomSerializer, GuestSerializer, BookingSerializer, RegisterSerializer, MeSerializer
 from django.db import transaction
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
-from rest_framework.generics import CreateAPIView
+from rest_framework.generics import CreateAPIView, RetrieveUpdateAPIView
 from .permissions import IsStaffOrReadOnly, IsOwnerOrStaff, IsHotelOwnerOrReadOnly
 from .filters import RoomFilter
 
@@ -68,6 +68,13 @@ class GuestViewSet(viewsets.ModelViewSet):
     serializer_class = GuestSerializer
     permission_classes = [IsAdminUser]
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Guest.objects.all()
+        return Guest.objects.filter(booking__room__hotel__owner=user).distinct()
+    
+
 
 class BookingViewSet(viewsets.ModelViewSet):
     queryset = Booking.objects.all()
@@ -120,3 +127,11 @@ class BookingViewSet(viewsets.ModelViewSet):
 class RegisterView(CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
+
+
+class MeView(RetrieveUpdateAPIView):
+    serializer_class = MeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user.guest_profile

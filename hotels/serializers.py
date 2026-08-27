@@ -15,6 +15,13 @@ class RoomSerializer(serializers.ModelSerializer):
         model = Room
         fields = ['id', 'hotel', 'number', 'room_type', 'price_per_night']
 
+    def validate_hotel(self, value):
+        user = self.context['request'].user
+        if user.is_superuser:
+            return value
+        if value.owner != user:
+            raise serializers.ValidationError('You can only add rooms to your own hotels.')
+        return value
 
 class GuestSerializer(serializers.ModelSerializer):
     class Meta:
@@ -97,11 +104,14 @@ class BookingSerializer(serializers.ModelSerializer):
 
 
 class RegisterSerializer(serializers.Serializer):
+    ROLE_CHOICES = [('guest', 'Guest'), ('owner', 'Hotel owner')]
+
     username = serializers.CharField(max_length=150)
     password = serializers.CharField(write_only=True, min_length=8)
     email = serializers.EmailField()
     full_name = serializers.CharField(max_length=30)
     phone = serializers.CharField(max_length=20)
+    role = serializers.ChoiceField(choices=ROLE_CHOICES, default='guest')
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
@@ -109,11 +119,14 @@ class RegisterSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):
+        role = validated_data['role']
+
         with transaction.atomic():
             user = User.objects.create_user(
                 username=validated_data['username'],
                 password=validated_data['password'],
                 email=validated_data['email'],
+                is_staff=(role == 'owner'),
             )
             guest = Guest.objects.create(
                 user=user,
@@ -130,4 +143,16 @@ class RegisterSerializer(serializers.Serializer):
             'email': instance.user.email,
             'full_name': instance.full_name,
             'phone': instance.phone,
+            'role': 'owner' if instance.user.is_staff else 'guest',
         }
+
+class MeSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    role = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Guest
+        fields = ['id', 'username', 'full_name', 'email', 'phone', 'role']
+
+    def get_role(self, obj):
+        return 'owner' if obj.user.is_staff else 'guest'

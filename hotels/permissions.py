@@ -12,8 +12,10 @@ class IsStaffOrReadOnly(BasePermission):
 
 class IsOwnerOrStaff(BasePermission):
     def has_object_permission(self, request, view, obj):
-        if request.user.is_staff:
+        if request.user.is_superuser:
             return True
+        if request.user.is_staff:
+            return obj.room.hotel.owner == request.user
         return obj.guest.user == request.user
 
 
