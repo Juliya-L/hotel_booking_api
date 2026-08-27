@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.generics import CreateAPIView
 from .permissions import IsStaffOrReadOnly, IsOwnerOrStaff, IsHotelOwnerOrReadOnly
+from .filters import RoomFilter
 
 
 
@@ -35,7 +36,7 @@ class RoomViewSet(viewsets.ModelViewSet):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
     permission_classes = [IsHotelOwnerOrReadOnly]
-    filterset_fields = ['hotel', 'room_type']
+    filterset_class = RoomFilter
     ordering_fields = ['price_per_night', 'number']
 
 
