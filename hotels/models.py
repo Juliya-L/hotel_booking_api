@@ -26,7 +26,15 @@ class Room(models.Model):
     room_type = models.CharField(max_length=30, choices=ROOM_TYPE_CHOICES, default='standard')
     price_per_night = models.DecimalField(max_digits=8, decimal_places=2)
 
-    
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(price_per_night__gt=0),
+                name='price_per_night_positive',
+            )
+        ]
+
+        
     def __str__(self):
         return f'{self.hotel} - Room {self.number}'
     
