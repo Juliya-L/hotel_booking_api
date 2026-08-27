@@ -3,26 +3,30 @@ from .models import Hotel, Room, Guest, Booking
 
 @admin.register(Hotel)
 class HotelAdmin(admin.ModelAdmin):
-  list_display = ['name', 'city']
+  list_display = ['id', 'name', 'city', 'owner']
+  list_display_links = ['id', 'name']
   search_fields = ['name', 'city']
 
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-  list_display = ['hotel', 'number', 'room_type', 'price_per_night' ]
+  list_display = ['id', 'hotel', 'number', 'room_type', 'price_per_night' ]
+  list_display_links = ['id', 'number']
   list_filter = ['room_type']
   search_fields = ['number']
 
 
 @admin.register(Guest)
 class GuestAdmin(admin.ModelAdmin):
-  list_display = ['full_name', 'email', 'phone']
+  list_display = ['id', 'full_name', 'email', 'phone']
+  list_display_links = ['id', 'full_name']
   search_fields = ['phone']
   
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-  list_display = ['guest', 'room', 'check_in', 'check_out']
+  list_display = ['id', 'guest', 'room', 'check_in', 'check_out']
+  list_display_links = ['id', 'guest']
   list_filter = ['status']
 
 
