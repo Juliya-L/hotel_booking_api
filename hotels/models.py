@@ -8,6 +8,9 @@ class Hotel(models.Model):
     name = models.CharField(max_length=200)
     city = models.CharField(max_length=100)
 
+    class Meta:
+        ordering = ['id']
+
     def __str__(self):
         return self.name
 
@@ -27,6 +30,7 @@ class Room(models.Model):
     price_per_night = models.DecimalField(max_digits=8, decimal_places=2)
 
     class Meta:
+        ordering = ['id']
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(price_per_night__gt=0),
@@ -44,6 +48,9 @@ class Guest(models.Model):
     full_name = models.CharField(max_length=30)
     email = models.EmailField()
     phone = models.CharField(max_length=20)
+
+    class Meta:
+        ordering = ['id']
 
     def __str__(self):
         return f'{self.full_name} - Phone {self.phone}'
@@ -65,6 +72,7 @@ class Booking(models.Model):
     price_at_booking = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
 
     class Meta:
+        ordering = ['-check_in']
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(check_out__gt=models.F('check_in')),
