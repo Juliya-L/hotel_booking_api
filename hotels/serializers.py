@@ -77,19 +77,26 @@ class BookingSerializer(serializers.ModelSerializer):
     
 
     def validate(self, data):
+        check_in = data.get('check_in') or (self.instance.check_in if self.instance else None)
+        check_out = data.get('check_out') or (self.instance.check_out if self.instance else None)
+        room = data.get('room') or (self.instance.room if self.instance else None)
+
+        if check_in is None or check_out is None:
+            return data
+
         today = timezone.now().date()
 
-        if data['check_in'] < today:
+        if self.instance is None and check_in < today:
             raise serializers.ValidationError('Check-in date cannot be in the past.')
-        
-        if data['check_out'] <= data['check_in']:
+
+        if check_out <= check_in:
             raise serializers.ValidationError('Check-out date must be later than check-in date.')
 
         conflicting_bookings = Booking.objects.filter(
-            room=data['room'],
-            check_in__lt=data['check_out'],
-            check_out__gt=data['check_in'],
-        ).exclude(status='cancelled')
+            room=room,
+            check_in__lt=check_out,
+            check_out__gt=check_in,
+        ).exclude(status='cancelled').exclude(pk=self.instance.pk if self.instance else None)
 
         if conflicting_bookings.exists():
             raise serializers.ValidationError('This room is already booked for the selected dates.')
