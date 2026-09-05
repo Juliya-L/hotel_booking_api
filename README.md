@@ -6,6 +6,11 @@ The platform supports two roles: guests who book rooms, and hotel owners who man
 own hotels and rooms. Data is isolated per owner — a manager only sees their own hotels,
 rooms and the bookings made in them.
 
+## Live demo
+
+- API documentation — https://web-production-3642a.up.railway.app/api/docs/ 
+
+
 ## Tech stack
 
 - Python 3.12, Django 6.0, Django REST Framework
