@@ -68,6 +68,15 @@ SIMPLE_JWT = {
 }
 
 
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
+FRONTEND_SUCCESS_URL = config('FRONTEND_SUCCESS_URL', default='http://127.0.0.1:8000/api/docs/')
+FRONTEND_CANCEL_URL = config('FRONTEND_CANCEL_URL', default='http://127.0.0.1:8000/api/docs/')
+
+
+
+
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',

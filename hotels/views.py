@@ -1,6 +1,6 @@
 from rest_framework import viewsets
-from .models import Hotel, Room, Guest, Booking
-from .serializers import HotelSerializer, RoomSerializer, GuestSerializer, BookingSerializer, RegisterSerializer, MeSerializer
+from .models import Hotel, Room, Guest, Booking, Payment
+from .serializers import HotelSerializer, RoomSerializer, GuestSerializer, BookingSerializer, RegisterSerializer, MeSerializer, PaymentSerializer
 from django.db import transaction
 from rest_framework.response import Response
 from rest_framework import status
@@ -9,7 +9,9 @@ from rest_framework.generics import CreateAPIView, RetrieveUpdateAPIView
 from .permissions import IsStaffOrReadOnly, IsOwnerOrStaff, IsHotelOwnerOrReadOnly
 from .filters import RoomFilter
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
-
+import stripe
+from django.conf import settings
+from rest_framework.decorators import action
 
 @extend_schema_view(
     list=extend_schema(
@@ -236,6 +238,55 @@ class BookingViewSet(viewsets.ModelViewSet):
             serializer.save(guest=guest)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+   
+
+        if booking.status == 'cancelled':
+            return Response(
+                {'detail': 'Cannot pay for a cancelled booking.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if booking.payments.filter(status='paid').exists():
+            return Response(
+                {'detail': 'This booking is already paid.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        nights = (booking.check_out - booking.check_in).days
+        price = booking.price_at_booking or booking.room.price_per_night
+        amount = price * nights
+
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+
+        session = stripe.checkout.Session.create(
+            mode='payment',
+            line_items=[{
+                'price_data': {
+                    'currency': 'uah',
+                    'unit_amount': int(amount * 100),
+                    'product_data': {
+                        'name': f'Booking #{booking.id} — {booking.room}',
+                    },
+                },
+                'quantity': 1,
+            }],
+            success_url=settings.FRONTEND_SUCCESS_URL,
+            cancel_url=settings.FRONTEND_CANCEL_URL,
+            metadata={'booking_id': str(booking.id)},
+        )
+
+        payment = Payment.objects.create(
+            booking=booking,
+            amount=amount,
+            currency='UAH',
+            stripe_session_id=session.id,
+        )
+
+        return Response({
+            'payment_id': payment.id,
+            'checkout_url': session.url,
+        })
 
 
 @extend_schema(

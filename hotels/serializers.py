@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Hotel, Room, Guest, Booking
+from .models import Hotel, Room, Guest, Booking, Payment
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -163,3 +163,10 @@ class MeSerializer(serializers.ModelSerializer):
 
     def get_role(self, obj):
         return 'owner' if obj.user.is_staff else 'guest'
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = ['id', 'booking', 'amount', 'currency', 'status', 'created_at', 'paid_at']
+        read_only_fields = fields
