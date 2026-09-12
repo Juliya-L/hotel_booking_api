@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import HotelViewSet, RoomViewSet, GuestViewSet, BookingViewSet, RegisterView, MeView
+from .views import HotelViewSet, RoomViewSet, GuestViewSet, BookingViewSet, RegisterView, MeView, StripeWebhookView
 
 router = DefaultRouter()
 router.register(r'hotels', HotelViewSet)
@@ -12,5 +12,6 @@ urlpatterns = [
     path('', include(router.urls)),
     path('register/', RegisterView.as_view(), name='register'),
     path('me/', MeView.as_view(), name='me'),
+    path('stripe/webhook/', StripeWebhookView.as_view(), name='stripe-webhook'),
 ]
 

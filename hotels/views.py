@@ -12,6 +12,9 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 import stripe
 from django.conf import settings
 from rest_framework.decorators import action
+from rest_framework.views import APIView
+from django.utils import timezone
+
 
 @extend_schema_view(
     list=extend_schema(
@@ -323,3 +326,50 @@ class MeView(RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user.guest_profile
+
+
+
+@extend_schema(exclude=True)
+class StripeWebhookView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        payload = request.body
+        sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+
+        try:
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+            )
+        except ValueError:
+            return Response({'detail': 'Invalid payload.'}, status=status.HTTP_400_BAD_REQUEST)
+        except stripe.error.SignatureVerificationError:
+            return Response({'detail': 'Invalid signature.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if event['type'] == 'checkout.session.completed':
+            session = event['data']['object']
+            self._handle_successful_payment(session)
+
+        return Response(status=status.HTTP_200_OK)
+
+    def _handle_successful_payment(self, session):
+        with transaction.atomic():
+            payment = Payment.objects.select_for_update().filter(
+                stripe_session_id=session['id']
+            ).first()
+
+            if payment is None:
+                return
+
+            if payment.status == 'paid':
+                return
+
+            payment.status = 'paid'
+            payment.paid_at = timezone.now()
+            payment.save()
+
+            booking = payment.booking
+            if booking.status == 'pending':
+                booking.status = 'confirmed'
+                booking.save()
